@@ -567,7 +567,8 @@ const state = {
 state.month = state.sel.slice(0,7);
 
 /* ---------- rendering ---------- */
-function weekStart(s){ const d = parse(s); d.setDate(d.getDate()-d.getDay()); return ymd(d); }
+// Weeks start on Monday and end on Sunday (British style)
+function weekStart(s){ const d = parse(s); d.setDate(d.getDate()-((d.getDay()+6)%7)); return ymd(d); }
 
 function dotsFor(s){
   const hs = holsFor(s);
@@ -589,7 +590,7 @@ function renderWeek(){
     const s = addDays(ws,i), d = parse(s);
     const cls = ["wd", s===t?"today":"", s===state.sel?"sel":"", isRest(s)?"rest":""].join(" ");
     h += `<button class="${cls}" data-act="pick" data-s="${s}" aria-label="${DOW_LONG[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}" ${s===state.sel?'aria-current="date"':''}>
-      <span class="dow">${DOW[i]}</span><span class="n num">${d.getDate()}</span>${dotsFor(s)}</button>`;
+      <span class="dow">${DOW[d.getDay()]}</span><span class="n num">${d.getDate()}</span>${dotsFor(s)}</button>`;
   }
   document.getElementById("week").innerHTML = h;
 }
@@ -686,12 +687,12 @@ function renderSync(){
 function monthHTML(){
   const [y,m] = state.month.split("-").map(Number);
   const first = new Date(y,m-1,1), t = today();
-  const start = ymd(new Date(y,m-1,1-first.getDay()));
+  const start = ymd(new Date(y,m-1,1-((first.getDay()+6)%7)));
   let h = `<div class="mhead"><h2>${MON[m-1]} ${y}</h2>
     <button class="iconbtn" data-act="month" data-d="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
     <button class="iconbtn" data-act="month" data-d="1" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
     <button class="pill" data-act="today">Today</button></div><div class="mgrid">`;
-  DOW.forEach((w,i)=> h += `<div class="h ${i===0?"sun":""}">${w}</div>`);
+  [...DOW.slice(1), DOW[0]].forEach(w => h += `<div class="h ${w==="Sun"?"sun":""}">${w}</div>`);
   for (let i=0;i<42;i++){
     const s = addDays(start,i), d = parse(s);
     if (i===35 && d.getMonth()!==m-1) break;
