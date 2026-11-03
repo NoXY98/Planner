@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planner</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planner">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F3F5">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F3F5;
+  --sheet:#FFFFFF;
+  --ink:#1A1F2B;
+  --graphite:#687083;
+  --faint:#9AA1B0;
+  --rule:#E3E6EC;
+  --red:#C8243B;
+  --my:#2449B8;
+  --tw:#0F7B6C;
+  --font:"Schibsted Grotesk","Noto Sans TC",system-ui,-apple-system,"PingFang TC",sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:4px}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- shell ---------- */
+.app{max-width:1180px;margin:0 auto;min-height:100vh;padding:calc(12px + var(--safe-t)) 16px calc(84px + var(--safe-b))}
+.side{display:none}
+.topbar{display:flex;align-items:center;gap:8px;padding:4px 0 12px}
+.topbar h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em;flex:1}
+.iconbtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--graphite)}
+.iconbtn:hover{background:var(--rule);color:var(--ink)}
+.iconbtn svg{width:18px;height:18px}
+.pill{height:32px;padding:0 14px;border-radius:16px;border:1px solid var(--rule);background:var(--sheet);font-size:13px;font-weight:600}
+.pill:hover{border-color:var(--graphite)}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:rgba(242,243,245,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--rule);padding:6px 8px calc(6px + var(--safe-b));z-index:5}
+.tab{flex:1;max-width:140px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:12px;font-weight:600;color:var(--faint);border-radius:10px}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--ink)}
+
+/* ---------- week strip ---------- */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:0 -4px 16px;touch-action:pan-y}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 8px;border-radius:12px}
+.wd .dow{font-size:11px;font-weight:600;color:var(--faint)}
+.wd .n{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;font-weight:600}
+.wd.rest .n{color:var(--red)}
+.wd.today .n{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.wd.sel .n{background:var(--ink);color:#fff;box-shadow:none}
+.dots{display:flex;gap:3px;height:5px}
+.dot{width:5px;height:5px;border-radius:50%}
+.dot.my{background:var(--my)}
+.dot.tw{background:var(--tw)}
+.dot.plan{background:var(--faint)}
+
+/* ---------- day sheet ---------- */
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;overflow:hidden}
+.nudge{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:var(--ink);color:#fff;font-weight:600;text-align:left}
+.nudge span:last-child{font-weight:500;opacity:.75;font-size:13px;white-space:nowrap}
+.dayhead{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:end;padding:22px 20px 18px;border-bottom:1px solid var(--rule)}
+.big{font-size:88px;line-height:.82;font-weight:800;letter-spacing:-.05em;grid-row:span 2}
+.big.rest{color:var(--red)}
+.rel{font-size:13px;font-weight:600;color:var(--graphite)}
+.dname{font-size:24px;font-weight:700;line-height:1.15;letter-spacing:-.015em}
+.dname small{display:block;font-size:15px;font-weight:500;color:var(--graphite);letter-spacing:0}
+.hols{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.hol{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 8px;border-radius:999px;font-size:13px;font-weight:500;border:1px solid var(--rule)}
+.hol b{font-size:11px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff}
+.hol.my b{background:var(--my)}
+.hol.tw b{background:var(--tw)}
+.hol em{font-style:normal;color:var(--faint)}
+
+.sec{display:flex;align-items:baseline;justify-content:space-between;padding:18px 20px 8px}
+.sec h2{margin:0;font-size:17px;font-weight:700}
+.sec span{font-size:13px;color:var(--graphite)}
+
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:62px 1fr 36px;align-items:center;min-height:50px;border-bottom:1px solid var(--rule);position:relative}
+.row::before,.addrow::before{content:"";position:absolute;left:62px;top:0;bottom:0;width:1px;background:rgba(200,36,59,.28)}
+.row .t{font-size:13px;color:var(--graphite);text-align:right;padding-right:12px}
+.row .body{display:flex;align-items:center;gap:12px;padding:0 0 0 14px;min-width:0}
+.chk{appearance:none;-webkit-appearance:none;flex:none;width:20px;height:20px;border:1.5px solid var(--ink);border-radius:6px;margin:0;display:grid;place-items:center;cursor:pointer}
+.chk:checked{background:var(--ink)}
+.chk:checked::after{content:"";width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:translateY(-1px) rotate(-45deg)}
+.txt{flex:1;min-width:0;border:0;background:none;padding:12px 0;outline:none}
+.txt:focus{outline:none}
+.row textarea.txt{resize:none;overflow:hidden;line-height:1.4;padding:14px 0;display:block;height:48px}
+.row.done .txt{color:var(--faint);text-decoration:line-through}
+.del{width:32px;height:32px;border-radius:50%;color:var(--faint);display:grid;place-items:center;opacity:.55}
+.del:hover,.del:focus-visible{opacity:1;color:var(--red);background:#FBEFF1}
+.del svg{width:14px;height:14px}
+.empty{padding:14px 20px 14px 76px;color:var(--graphite);border-bottom:1px solid var(--rule);position:relative}
+.empty::before{content:"";position:absolute;left:62px;top:0;bottom:0;width:1px;background:rgba(200,36,59,.28)}
+
+.addrow{display:grid;grid-template-columns:62px 1fr auto;align-items:center;min-height:54px;border-bottom:1px solid var(--rule);position:relative}
+.addrow input[type=time]{width:58px;border:0;background:none;font-size:13px;color:var(--graphite);padding:0 4px 0 0;text-align:right;justify-self:end;margin-right:6px}
+.addrow input[type=time]::-webkit-calendar-picker-indicator{display:none}
+.addrow input[type=time].blank:not(:focus){color:transparent;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239AA1B0' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3Cpath d='M12 8v4l2.5 2'/%3E%3C/svg%3E") right 4px center/18px no-repeat}
+.addrow .txt{padding-left:14px}
+.addrow .txt::placeholder{color:var(--faint)}
+.addbtn{margin-right:12px;height:32px;padding:0 14px;border-radius:16px;background:var(--ink);color:#fff;font-size:13px;font-weight:600}
+.addbtn:disabled{background:var(--rule);color:var(--faint);cursor:default}
+
+.notes{display:block;width:100%;min-height:150px;border:0;resize:vertical;padding:0 20px 20px;line-height:30px;background-image:linear-gradient(transparent 29px,var(--rule) 29px);background-size:100% 30px;background-attachment:local;outline:none}
+.notes::placeholder{color:var(--faint)}
+.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;border-top:1px solid var(--rule);font-size:13px;color:var(--graphite)}
+.foot .pill{color:var(--ink)}
+.sync{display:inline-flex;align-items:center;gap:6px}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.sync.on i{background:var(--tw)}
+.sync.err i{background:var(--red)}
+
+/* ---------- month ---------- */
+.mhead{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.mhead h2{margin:0;flex:1;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--sheet);border:1px solid var(--rule);border-radius:18px;overflow:hidden}
+.mgrid .h{font-size:11px;font-weight:600;color:var(--faint);text-align:center;padding:10px 0 6px}
+.mgrid .h.sun{color:var(--red)}
+.md{aspect-ratio:1/1.05;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding-top:6px;border-top:1px solid var(--rule);font-weight:600}
+.md .n{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;font-size:15px}
+.md.out{color:var(--faint);font-weight:400}
+.md.out .dots{opacity:.4}
+.md.rest:not(.out) .n{color:var(--red)}
+.md.today .n{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.md.sel .n{background:var(--ink);color:#fff;box-shadow:none}
+.md:hover .n{background:var(--rule)}
+.md.sel:hover .n{background:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--graphite);margin:10px 4px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .red{color:var(--red);font-weight:700}
+
+.upcoming{margin-top:24px}
+.upcoming h3{font-size:15px;font-weight:700;margin:0 4px 6px}
+.up{list-style:none;margin:0;padding:0}
+.up li button{display:grid;grid-template-columns:52px 1fr;gap:10px;width:100%;text-align:left;padding:9px 4px;border-bottom:1px solid var(--rule);align-items:start}
+.up li:last-child button{border-bottom:0}
+.up .dt{font-size:13px;font-weight:600;line-height:1.25}
+.up .dt small{display:block;font-weight:500;color:var(--faint);font-size:11px}
+.up .nm{font-size:14px;line-height:1.35;display:flex;gap:7px;align-items:baseline}
+.up .nm b{font-size:10px;font-weight:700;padding:1px 4px;border-radius:3px;color:#fff;flex:none;position:relative;top:-1px}
+.up .nm b.my{background:var(--my)}
+.up .nm b.tw{background:var(--tw)}
+.up .nm em{font-style:normal;color:var(--faint)}
+
+/* ---------- reminders ---------- */
+.panel h2{font-size:24px;font-weight:700;letter-spacing:-.015em;margin:4px 0 4px}
+.panel > p{color:var(--graphite);margin:0 0 18px;max-width:56ch}
+.list{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;overflow:hidden;margin-bottom:22px}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--rule)}
+.item:last-child{border-bottom:0}
+.item .clock{font-size:28px;font-weight:800;letter-spacing:-.03em;min-width:86px}
+.item h3{margin:0;font-size:15px;font-weight:700}
+.item p{margin:2px 0 0;font-size:13px;color:var(--graphite)}
+.listh{font-size:13px;font-weight:600;color:var(--graphite);margin:0 4px 8px}
+.switch{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:var(--rule);position:relative;cursor:pointer;transition:background .15s;margin:0}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.switch:checked{background:var(--ink)}
+.switch:checked::after{transform:translateX(18px)}
+.flag{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+.flag.my{background:var(--my)}
+.flag.tw{background:var(--tw)}
+.fine{font-size:12px;color:var(--graphite);margin:-12px 4px 22px;max-width:60ch}
+ .data-item{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.data-item .sync{flex:1 1 100%;font-size:13px;color:var(--graphite)}
+.item.hrs{grid-template-columns:auto 1fr}
+.item.hrs .hours{grid-column:2/-1}
+.import-box{display:block}
+.import-box[hidden]{display:none}
+.import-box textarea{width:100%;min-height:120px;border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13px;resize:vertical;font-family:ui-monospace,Menlo,monospace}
+.import-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+
+.view{display:none}
+.view.on{display:block}
+
+/* ---------- AI + toast actions ---------- */
+.spark{display:inline-flex;align-items:center;gap:6px}
+.spark svg{width:14px;height:14px}
+.ai-hint{display:flex;align-items:center;gap:8px;padding:8px 20px;font-size:12px;color:var(--graphite);border-bottom:1px solid var(--rule)}
+.ai-hint[hidden]{display:none}
+.ai-hint i{width:7px;height:7px;border-radius:50%;background:var(--tw);animation:pulse 1s infinite alternate}
+@keyframes pulse{from{opacity:.3}to{opacity:1}}
+.toast{display:flex;align-items:center;gap:12px;pointer-events:none}
+.toast.show{pointer-events:auto}
+.toast button{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.toast button[hidden]{display:none}
+.notes-wrap{position:relative}
+.notes-tools{display:flex;justify-content:flex-end;padding:0 20px 8px;margin-top:-34px}
+.sec .pill{height:28px;padding:0 12px;font-size:12px}
+
+/* ---------- recap ---------- */
+.recap{margin:0;padding:14px 20px;border-bottom:1px solid var(--rule);background:#F7F8FA;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.recap .ring{grid-row:span 2;width:46px;height:46px}
+.recap h3{margin:0;font-size:15px;font-weight:700}
+.recap p{margin:0;font-size:13px;color:var(--graphite)}
+
+/* ---------- words ---------- */
+.wcard{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;padding:22px 20px 18px;margin-bottom:14px}
+.wcard .lbl{font-size:12px;font-weight:600;color:var(--graphite);display:flex;justify-content:space-between;gap:8px}
+.wcard .word{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:10px 0 2px;word-break:break-word}
+.wcard .pos{font-size:14px;color:var(--graphite);font-style:italic}
+.wcard .zh{font-size:17px;font-weight:600;margin:12px 0 4px}
+.wcard .mean{margin:0 0 10px}
+.wcard .ex{margin:0;padding-left:12px;border-left:3px solid var(--rule);color:var(--graphite)}
+.wcard .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.wcard .acts .addbtn{margin:0}
+.wempty{color:var(--graphite);margin:0}
+.restcard{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;background:var(--sheet);border:1px solid var(--rule);border-radius:18px;padding:16px 20px;margin-bottom:22px}
+.restcard .ico{width:40px;height:40px;border-radius:12px;background:#E7F3F1;color:var(--tw);display:grid;place-items:center}
+.restcard .ico svg{width:22px;height:22px}
+.restcard h3{margin:0;font-size:15px;font-weight:700}
+.restcard p{margin:2px 0 0;font-size:13px;color:var(--graphite)}
+.wlist{list-style:none;margin:0 0 22px;padding:0;background:var(--sheet);border:1px solid var(--rule);border-radius:18px;overflow:hidden}
+.wlist li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--rule)}
+.wlist li:last-child{border-bottom:0}
+.wlist b{font-size:15px}
+.wlist .m{font-size:13px;color:var(--graphite);display:block;line-height:1.35}
+.wlist li.learned b{color:var(--faint);text-decoration:line-through}
+.wday{font-size:13px;font-weight:600;color:var(--graphite);margin:0 4px 8px}
+.got{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--rule);font-size:12px;font-weight:600;white-space:nowrap}
+.got[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+select.sel{height:32px;border:1px solid var(--rule);border-radius:10px;background:var(--sheet);padding:0 8px;font:inherit;font-size:14px}
+.hours{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--graphite)}
+
+/* ---------- first-run setup ---------- */
+.setup{position:fixed;inset:0;z-index:20;background:var(--paper);overflow:auto;padding:calc(40px + var(--safe-t)) 20px calc(30px + var(--safe-b))}
+.setup[hidden]{display:none}
+.setup .in{max-width:440px;margin:0 auto}
+.setup img{width:72px;height:72px;border-radius:17px;display:block;margin-bottom:18px;box-shadow:0 6px 18px rgba(26,31,43,.18)}
+.setup h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+.setup p{color:var(--graphite);margin:0 0 18px}
+.setup input{width:100%;height:48px;border:1px solid var(--rule);border-radius:12px;background:var(--sheet);padding:0 14px;font-size:15px}
+.setup .go{width:100%;height:48px;margin-top:12px;border-radius:24px;background:var(--ink);color:#fff;font-weight:700;font-size:16px}
+.setup .go:disabled{opacity:.5}
+.setup .msg{min-height:22px;margin:10px 2px 0;font-size:13px;color:var(--red)}
+.setup .skip{display:block;margin:16px auto 0;color:var(--graphite);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.setup .skip[hidden]{display:none}
+.rawdot{display:inline-block;margin-left:4px;color:var(--faint);vertical-align:-2px}
+.rawdot svg{width:12px;height:12px}
+
+/* ---------- desktop ---------- */
+@media (min-width:960px){
+  .app{display:grid;grid-template-columns:340px 1fr;gap:36px;padding:32px 32px 48px}
+  .side{display:block;position:sticky;top:32px;align-self:start}
+  .tabs{position:static;background:none;backdrop-filter:none;border:0;padding:0;justify-content:flex-end;gap:4px;margin:0 0 12px}
+  .tab{flex:none;flex-direction:row;gap:6px;padding:7px 14px;font-size:13px;border-radius:18px;color:var(--graphite)}
+  .tab svg{width:16px;height:16px}
+  .tab[aria-current="page"]{background:var(--sheet);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink)}
+  .tab.m-only{display:none}
+  .view.month-view{display:none!important}
+  .main .topbar{display:none}
+  .big{font-size:128px}
+  .dayhead{padding:30px 28px 22px}
+  .dname{font-size:32px}
+  .sec,.foot{padding-left:28px;padding-right:28px}
+  .notes{padding-left:28px;padding-right:28px}
+  .row,.addrow{grid-template-columns:76px 1fr 40px}
+  .addrow{grid-template-columns:76px 1fr auto}
+  .row::before,.addrow::before,.empty::before{left:76px}
+  .empty{padding-left:92px}
+  .addrow input[type=time]{width:66px}
+  .toast{bottom:32px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Month">
+    <div id="sideMonth"></div>
+    <div class="upcoming"><h3>Coming up</h3><ul class="up" id="sideUp"></ul></div>
+  </aside>
+
+  <main class="main">
+    <nav class="tabs" aria-label="Views">
+      <button class="tab" data-act="view" data-v="day">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M8 12h8M8 16h5"/></svg>Day</button>
+      <button class="tab m-only" data-act="view" data-v="month">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 10v10M15 10v10M4 15h16"/></svg>Month</button>
+      <button class="tab" data-act="view" data-v="words">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V6a2 2 0 0 1 2-2h12v13H7a2 2 0 0 0-2 2zm0 0a2 2 0 0 0 2 2h12"/><path d="M9 8h6M9 11.5h4"/></svg>Words</button>
+      <button class="tab" data-act="view" data-v="rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>Reminders</button>
+    </nav>
+
+    <section class="view day-view" id="vDay">
+      <div class="topbar">
+        <h1 id="weekTitle"></h1>
+        <button class="iconbtn" data-act="week" data-d="-7" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="iconbtn" data-act="week" data-d="7" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="pill" data-act="today">Today</button>
+      </div>
+      <div class="week" id="week"></div>
+      <div id="daySheet"></div>
+    </section>
+
+    <section class="view month-view" id="vMonth">
+      <div id="mainMonth"></div>
+      <div class="upcoming"><h3>Coming up</h3><ul class="up" id="mainUp"></ul></div>
+    </section>
+
+    <section class="view panel" id="vWords"></section>
+    <section class="view panel" id="vRem"></section>
+  </main>
+</div>
+<section class="setup" id="setup" hidden aria-labelledby="setupTitle">
+  <div class="in">
+    <img src="icon-180.png" alt="">
+    <h1 id="setupTitle">Welcome to Planner</h1>
+    <p>Paste your <b>Planner link</b> to sync your plans, words and reminders. You'll find it on the Planner setup page from Google Apps Script.</p>
+    <input id="apiField" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" aria-label="Planner link">
+    <button class="go" id="setupGo" data-act="connect">Connect</button>
+    <div class="msg" id="setupMsg" role="status"></div>
+    <button class="skip" id="setupSkip" data-act="localonly">Use on this phone only for now</button>
+  </div>
+</section>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastAct" hidden></button></div>
+
+<script>
+/* =========================================================
+   Holidays
+   Malaysia: federal + W.P. Kuala Lumpur (BKPP, Prime Minister's Dept).
+   Taiwan: 行政院人事行政總處 辦公日曆表 (115 / 116年).
+   est: replacement day estimated under the Holidays Act 1951 rule.
+   ========================================================= */
+const HOLIDAYS = [
+  // ---- Malaysia (KL) ----
+  {d:"2026-11-08",c:"MY",n:"Deepavali"},
+  {d:"2026-11-09",c:"MY",n:"Deepavali (replacement)"},
+  {d:"2026-12-25",c:"MY",n:"Christmas Day"},
+  {d:"2027-01-01",c:"MY",n:"New Year's Day"},
+  {d:"2027-01-22",c:"MY",n:"Thaipusam"},
+  {d:"2027-02-01",c:"MY",n:"Federal Territory Day"},
+  {d:"2027-02-06",c:"MY",n:"Chinese New Year"},
+  {d:"2027-02-07",c:"MY",n:"Chinese New Year (day 2)"},
+  {d:"2027-02-08",c:"MY",n:"Chinese New Year (replacement)",est:1},
+  {d:"2027-02-24",c:"MY",n:"Nuzul Al-Quran"},
+  {d:"2027-03-10",c:"MY",n:"Hari Raya Aidilfitri",var:1},
+  {d:"2027-03-11",c:"MY",n:"Hari Raya Aidilfitri (day 2)",var:1},
+  {d:"2027-05-01",c:"MY",n:"Labour Day"},
+  {d:"2027-05-17",c:"MY",n:"Hari Raya Haji",var:1},
+  {d:"2027-05-20",c:"MY",n:"Wesak Day"},
+  {d:"2027-06-06",c:"MY",n:"Awal Muharram"},
+  {d:"2027-06-07",c:"MY",n:"Agong's Birthday"},
+  {d:"2027-06-08",c:"MY",n:"Awal Muharram (replacement)",est:1},
+  {d:"2027-08-15",c:"MY",n:"Maulidur Rasul"},
+  {d:"2027-08-16",c:"MY",n:"Maulidur Rasul (replacement)",est:1},
+  {d:"2027-08-31",c:"MY",n:"National Day"},
+  {d:"2027-09-16",c:"MY",n:"Malaysia Day"},
+  {d:"2027-10-28",c:"MY",n:"Deepavali",var:1},
+  {d:"2027-12-25",c:"MY",n:"Christmas Day"},
+  // ---- Taiwan ----
+  {d:"2026-12-25",c:"TW",n:"行憲紀念日"},
+  {d:"2027-01-01",c:"TW",n:"開國紀念日"},
+  {d:"2027-02-04",c:"TW",n:"除夕前一日"},
+  {d:"2027-02-05",c:"TW",n:"除夕"},
+  {d:"2027-02-06",c:"TW",n:"春節 初一"},
+  {d:"2027-02-07",c:"TW",n:"春節 初二"},
+  {d:"2027-02-08",c:"TW",n:"春節 初三"},
+  {d:"2027-02-09",c:"TW",n:"春節補假"},
+  {d:"2027-02-10",c:"TW",n:"春節補假"},
+  {d:"2027-02-28",c:"TW",n:"和平紀念日"},
+  {d:"2027-03-01",c:"TW",n:"和平紀念日補假"},
+  {d:"2027-04-04",c:"TW",n:"兒童節"},
+  {d:"2027-04-05",c:"TW",n:"清明節"},
+  {d:"2027-04-06",c:"TW",n:"兒童節補假"},
+  {d:"2027-04-30",c:"TW",n:"勞動節補假"},
+  {d:"2027-05-01",c:"TW",n:"勞動節"},
+  {d:"2027-06-09",c:"TW",n:"端午節"},
+  {d:"2027-09-15",c:"TW",n:"中秋節"},
+  {d:"2027-09-28",c:"TW",n:"教師節"},
+  {d:"2027-10-10",c:"TW",n:"國慶日"},
+  {d:"2027-10-11",c:"TW",n:"國慶日補假"},
+  {d:"2027-10-25",c:"TW",n:"臺灣光復暨金門古寧頭大捷紀念日"},
+  {d:"2027-12-24",c:"TW",n:"行憲紀念日補假"},
+  {d:"2027-12-25",c:"TW",n:"行憲紀念日"},
+  {d:"2027-12-31",c:"TW",n:"開國紀念日補假"},
+];
+const HOL = {};
+HOLIDAYS.forEach(h => (HOL[h.d] ||= []).push(h));
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return ymd(d); };
+const today = () => ymd(new Date());
+const isWeekday = s => { const w = parse(s).getDay(); return w>0 && w<6; };
+const nextWork = s => { let n = addDays(s,1); while (!isWeekday(n)) n = addDays(n,1); return n; };
+const NATIVE = !!(window.CapPlugins && window.CapPlugins.Capacitor && window.CapPlugins.Capacitor.isNativePlatform());
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const SPARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16v4M17 18h4"/></svg>';
+
+/* ---------- prefs (this device only) ---------- */
+const prefs = (() => { const d = {my:true,tw:true,autofix:true}; try { return Object.assign(d, JSON.parse(localStorage.getItem("planner.prefs")||"{}")); } catch { return d; } })();
+const savePrefs = () => { try { localStorage.setItem("planner.prefs", JSON.stringify(prefs)); } catch {} };
+const holsFor = s => (HOL[s]||[]).filter(h => h.c==="MY" ? prefs.my : prefs.tw);
+const isRest = s => parse(s).getDay()===0 || (prefs.tw && (HOL[s]||[]).some(h=>h.c==="TW"));
+
+/* =========================================================
+   Sync — your own Google Apps Script web app (the "Planner link").
+   Plans, words and settings live in the "Planner data" Google Sheet.
+   This phone keeps a copy so the app works offline.
+   ========================================================= */
+const API = {
+  url: (() => { try { return localStorage.getItem("planner.api") || ""; } catch { return ""; } })(),
+  set(u){ this.url = u; try { u ? localStorage.setItem("planner.api", u) : localStorage.removeItem("planner.api"); } catch {} },
+  async get(action, url = this.url){
+    const r = await fetch(`${url}?action=${action}&_=${Date.now()}`, {cache: "no-store", redirect: "follow"});
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "failed");
+    return j;
+  },
+  async post(body){
+    const r = await fetch(this.url, {method: "POST", body: JSON.stringify(body), redirect: "follow"});
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "failed");
+    return j;
+  }
+};
+const validApi = u => /^https:\/\/script\.google\.com\/macros\/s\/[\w-]{20,}\/exec$/.test(u);
+
+const Store = {
+  mode: "local",      // "local" | "synced" | "error" | "syncing"
+  data: {},
+  dirty: new Set(),
+  timers: {},
+  chains: {},
+  syncing: false,
+  loadLocal(){ try { this.data = JSON.parse(localStorage.getItem("planner.v1")||"{}"); } catch { this.data = {}; } },
+  saveLocal(){ try { localStorage.setItem("planner.v1", JSON.stringify(this.data)); localStorage.setItem("planner.dirty", JSON.stringify([...this.dirty])); } catch {} },
+  get(date){ return this.data[date] || {items:[], note:""}; },
+  ensure(date){ return this.data[date] ||= {items:[], note:""}; },
+  touch(date){
+    this.dirty.add(date);
+    this.saveLocal();
+    clearTimeout(this.timers[date]);
+    this.timers[date] = setTimeout(() => { delete this.timers[date]; this.flush(date); }, 800);
+  },
+  flush(date){
+    if (!API.url) return Promise.resolve();
+    this.chains[date] = (this.chains[date] || Promise.resolve()).then(async () => {
+      const p = this.get(date);
+      try {
+        await API.post({action: "savePlan", date, plan: {items: p.items, note: p.note}});
+        if (!this.timers[date]) { this.dirty.delete(date); this.saveLocal(); }
+        this.setMode("synced");
+      } catch (e) {
+        this.setMode("error");
+      }
+    });
+    return this.chains[date];
+  },
+  setMode(m){ if (this.mode !== m) { this.mode = m; renderSync(); } },
+  async sync(){
+    if (!API.url || this.syncing) return;
+    this.syncing = true;
+    try {
+      for (const k of [...this.dirty]) await this.flush(k);          // send local changes first
+      const d = await API.get("load");
+      for (const k of Object.keys(this.data)) if (k >= d.from && !d.plans[k] && !this.dirty.has(k)) delete this.data[k];
+      for (const [k, v] of Object.entries(d.plans)) if (!this.dirty.has(k)) this.data[k] = {items: Array.isArray(v.items) ? v.items : [], note: v.note || ""};
+      Words.list = Array.isArray(d.words) ? d.words : [];
+      Words.loaded = true; Words.db = true;
+      if (d.settings && d.settings.reminders) Object.assign(Settings.v, d.settings.reminders);
+      if (d.settings && d.settings.ai) Object.assign(Settings.ai, d.settings.ai);
+      Settings.db = true;
+      this.saveLocal();
+      try { localStorage.setItem("planner.cache", JSON.stringify({words: Words.list, settings: d.settings || {}})); } catch {}
+      this.setMode(this.dirty.size ? "error" : "synced");
+      scheduleRender();
+    } catch (e) {
+      this.setMode("error");
+    } finally { this.syncing = false; }
+  },
+  start(){
+    this.loadLocal();
+    try { JSON.parse(localStorage.getItem("planner.dirty")||"[]").forEach(k => this.dirty.add(k)); } catch {}
+    try { const c = JSON.parse(localStorage.getItem("planner.cache")||"{}");
+      if (Array.isArray(c.words)) { Words.list = c.words; Words.loaded = true; }
+      if (c.settings && c.settings.reminders) Object.assign(Settings.v, c.settings.reminders);
+      if (c.settings && c.settings.ai) Object.assign(Settings.ai, c.settings.ai);
+    } catch {}
+    if (API.url) { Words.db = true; Settings.db = true; }
+    render();
+    this.sync();
+    setInterval(() => { if (!document.hidden) this.sync(); }, 60000);
+    window.addEventListener("online", () => this.sync());
+  }
+};
+
+/* ---------- words: written by the hourly Claude reminder ---------- */
+const Words = {
+  list: [], loaded: false, db: null,
+  async setLearned(id, v){
+    const w = this.list.find(x => x.id === id); if (!w) return;
+    w.learned = v; render();
+    try { await API.post({action: "setLearned", id, learned: v}); } catch { toast("Couldn't save. Check your connection."); }
+  },
+  todayCount(s){ return this.list.filter(w => w.date === s).length; }
+};
+
+/* ---------- reminder settings, read by the Claude reminders ---------- */
+const Settings = {
+  v: {word:true, rest:true, start:9, end:18},
+  ai: {tidy:true},
+  db: null,
+  async save(patch){
+    Object.assign(this.v, patch);
+    if (this.v.end < this.v.start) this.v.end = this.v.start;
+    if (state.view === "rem") renderRem();
+    if (!API.url) { toast("Connect your Planner link first"); return; }
+    try { await API.post({action: "saveSettings", key: "reminders", value: this.v}); toast("Reminder settings saved"); }
+    catch { toast("Couldn't save settings"); }
+  },
+  async saveAi(patch){
+    Object.assign(this.ai, patch);
+    if (state.view === "rem") renderRem();
+    if (!API.url) return;
+    try { await API.post({action: "saveSettings", key: "ai", value: this.ai}); } catch { toast("Couldn't save settings"); }
+  }
+};
+const Widget = { schedule(){} };   // the widget reads your Planner link directly
+const REST_TIPS = [
+  ["Rest your eyes", "Look at something 6 metres away for 20 seconds."],
+  ["Stand up and stretch", "Roll your shoulders and stretch your back for a minute."],
+  ["Drink some water", "Refill your bottle and take a few sips."],
+  ["Take a short walk", "Walk around for two minutes, then come back."],
+  ["Relax your neck", "Slowly tilt your head side to side, five times each."],
+  ["Breathe", "Breathe in for 4 seconds, out for 6. Repeat five times."],
+  ["Check your posture", "Feet flat, back against the chair, screen at eye level."],
+  ["Rest your hands", "Open and close your hands, then shake them out."],
+];
+const restTip = (h = new Date().getHours()) => REST_TIPS[(Number(today().slice(-2)) + h) % REST_TIPS.length];
+
+/* Claude tidies wording in the hourly reminder: new or edited tasks are
+   marked raw:true and come back corrected (times like "0830" moved to the time column). */
+const AI = { ok: false, busy: 0, setBusy(){}, fixItems(){}, tidyNote(){}, newWord(){} };
+const Native = { perm: "prompt", save(){}, schedule(){}, requestPerm(){}, init(){} };
+/* ---------- state ---------- */
+const state = {
+  view: ({"#reminders":"rem", "#month":"month", "#words":"words"})[location.hash] || "day",
+  sel: today(),
+  month: null,
+};
+state.month = state.sel.slice(0,7);
+
+/* ---------- rendering ---------- */
+function weekStart(s){ const d = parse(s); d.setDate(d.getDate()-d.getDay()); return ymd(d); }
+
+function dotsFor(s){
+  const hs = holsFor(s);
+  let h = "";
+  if (hs.some(x=>x.c==="MY")) h += '<i class="dot my"></i>';
+  if (hs.some(x=>x.c==="TW")) h += '<i class="dot tw"></i>';
+  if (Store.get(s).items.length) h += '<i class="dot plan"></i>';
+  return `<span class="dots">${h}</span>`;
+}
+
+function renderWeek(){
+  const t = today(), ws = weekStart(state.sel);
+  const end = addDays(ws,6), a = parse(ws), b = parse(end);
+  document.getElementById("weekTitle").textContent =
+    a.getMonth()===b.getMonth() ? `${MON[a.getMonth()]} ${a.getFullYear()}` :
+    `${MON[a.getMonth()].slice(0,3)} – ${MON[b.getMonth()].slice(0,3)} ${b.getFullYear()}`;
+  let h = "";
+  for (let i=0;i<7;i++){
+    const s = addDays(ws,i), d = parse(s);
+    const cls = ["wd", s===t?"today":"", s===state.sel?"sel":"", isRest(s)?"rest":""].join(" ");
+    h += `<button class="${cls}" data-act="pick" data-s="${s}" aria-label="${DOW_LONG[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}" ${s===state.sel?'aria-current="date"':''}>
+      <span class="dow">${DOW[i]}</span><span class="n num">${d.getDate()}</span>${dotsFor(s)}</button>`;
+  }
+  document.getElementById("week").innerHTML = h;
+}
+
+function relLabel(s){
+  const t = today();
+  if (s===t) return "Today";
+  if (s===addDays(t,1)) return "Tomorrow";
+  if (s===addDays(t,-1)) return "Yesterday";
+  const diff = Math.round((parse(s)-parse(t))/864e5);
+  return diff>0 ? `In ${diff} days` : `${-diff} days ago`;
+}
+
+function sortItems(items){
+  return items.map((it,i)=>({it,i})).sort((a,b)=>{
+    if (a.it.t && b.it.t) return a.it.t.localeCompare(b.it.t) || a.i-b.i;
+    if (a.it.t) return -1;
+    if (b.it.t) return 1;
+    return a.i-b.i;
+  }).map(x=>x.it);
+}
+
+function renderDay(){
+  const s = state.sel, d = parse(s), p = Store.get(s), t = today();
+  const now = new Date();
+  const afterNudge = now.getHours()*60+now.getMinutes() >= 16*60+30;
+  const hs = holsFor(s);
+  const done = p.items.filter(i=>i.done).length;
+  const open = p.items.length - done;
+  const items = sortItems(p.items);
+
+  let h = "";
+  if (s===t && afterNudge && isWeekday(t)) {
+    const nw = nextWork(t), nwName = nw===addDays(t,1) ? "tomorrow" : DOW_LONG[parse(nw).getDay()];
+    const tm = Store.get(nw).items.length;
+    h += `<button class="nudge" data-act="pick" data-s="${nw}"><span>${tm ? `Review ${nwName === "tomorrow" ? "tomorrow's" : nwName + "'s"} plan` : `It's after 16:30. Plan ${nwName}`}</span><span>Open ${nwName}</span></button>`;
+  }
+  h += `<header class="dayhead">
+      <div class="big num ${isRest(s)?"rest":""}">${d.getDate()}</div>
+      <div class="rel">${relLabel(s)}</div>
+      <div class="dname">${DOW_LONG[d.getDay()]}<small>${MON[d.getMonth()]} ${d.getFullYear()}</small></div>
+      ${hs.length ? `<div class="hols">${hs.map(x=>`<span class="hol ${x.c.toLowerCase()}"><b>${x.c}</b>${esc(x.n)}${x.est?" <em>est.</em>":""}${x.var?" <em>may shift</em>":""}</span>`).join("")}</div>` : ""}
+    </header>`;
+
+  const showRecap = p.items.length && (s < t || (s === t && now.getHours() >= 16));
+  if (showRecap) {
+    const pct = done / p.items.length, C = 2*Math.PI*19, wn = Words.todayCount(s);
+    h += `<div class="recap">
+      <svg class="ring" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="19" fill="none" stroke="var(--rule)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--tw)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 23 23)"/></svg>
+      <h3>${s===t ? "Today's recap" : "Recap"}: ${done} of ${p.items.length} done</h3>
+      <p>${open ? `${open} unfinished. Move ${open===1?"it":"them"} with the button at the bottom.` : "Everything done. Well done!"}${wn ? ` · ${wn} new ${wn===1?"word":"words"}` : ""}</p>
+    </div>`;
+  }
+  h += `<div class="sec"><h2>Plan</h2><span>${p.items.length ? `${done} of ${p.items.length} done` : (isWeekday(s) && s>t ? `Sent to you at 08:00 on ${DOW_LONG[d.getDay()]}` : "")}</span></div>`;
+  h += `<div class="ai-hint" id="aiHint" ${AI.busy ? "" : "hidden"}><i></i>Claude is tidying your wording…</div>`;
+  h += `<ul class="rows" id="rows">`;
+  if (!items.length) h += `<li class="empty">Nothing planned yet. Add the first thing below.${AI.ok && prefs.autofix ? " Type it any way you like; Claude will fix the wording." : ""}</li>`;
+  items.forEach(it => {
+    h += `<li class="row ${it.done?"done":""}" data-id="${esc(it.id)}">
+      <span class="t num">${esc(it.t||"")}${it.raw ? `<span class="rawdot" title="Claude will tidy this">${SPARK}</span>` : ""}</span>
+      <span class="body"><input type="checkbox" class="chk" data-act="toggle" ${it.done?"checked":""} aria-label="Done">
+      <textarea class="txt" data-act="edit" rows="1" aria-label="Task">${esc(it.text)}</textarea></span>
+      <button class="del" data-act="del" aria-label="Delete task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </li>`;
+  });
+  h += `</ul>
+    <form class="addrow" id="addForm" autocomplete="off">
+      <input type="time" id="addTime" class="blank" aria-label="Time (optional)">
+      <input class="txt" id="addText" placeholder="Add a task" aria-label="New task">
+      <button class="addbtn" id="addBtn" type="submit" disabled>Add</button>
+    </form>`;
+  h += `<div class="sec"><h2>Notes</h2>${AI.ok && p.note.trim() ? `<button class="pill spark" data-act="tidy">${SPARK}Fix grammar</button>` : ""}</div>
+    <textarea class="notes" id="notes" placeholder="Anything to remember for this day" aria-label="Notes">${esc(p.note)}</textarea>`;
+  h += `<footer class="foot"><span class="sync" id="sync"></span>
+      ${AI.ok && open ? `<button class="pill spark" data-act="fixall">${SPARK}Fix wording</button>` : ""}
+      ${open ?`<button class="pill" data-act="carry">Move ${open} unfinished to ${nextWork(s)===addDays(s,1) && s===t ? "tomorrow" : DOW_LONG[parse(nextWork(s)).getDay()]}</button>` : ""}
+    </footer>`;
+  const el = document.getElementById("daySheet");
+  el.className = "sheet";
+  el.innerHTML = h;
+  el.querySelectorAll("textarea.txt").forEach(fit);
+  renderSync();
+}
+
+function fit(t){ t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+function renderSync(){
+  const el = document.getElementById("sync");
+  if (!el) return;
+  const m = Store.mode;
+  el.className = "sync " + (NATIVE || m==="synced" ? "on" : m==="error" ? "err" : "");
+  el.innerHTML = "<i></i>" + (!API.url ? "Saved on this phone" : m==="synced" ? "Synced. Your reminders read from here" : m==="error" ? "Offline. Saved on this phone" : "Syncing…");
+}
+
+function monthHTML(){
+  const [y,m] = state.month.split("-").map(Number);
+  const first = new Date(y,m-1,1), t = today();
+  const start = ymd(new Date(y,m-1,1-first.getDay()));
+  let h = `<div class="mhead"><h2>${MON[m-1]} ${y}</h2>
+    <button class="iconbtn" data-act="month" data-d="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="iconbtn" data-act="month" data-d="1" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="pill" data-act="today">Today</button></div><div class="mgrid">`;
+  DOW.forEach((w,i)=> h += `<div class="h ${i===0?"sun":""}">${w}</div>`);
+  for (let i=0;i<42;i++){
+    const s = addDays(start,i), d = parse(s);
+    if (i===35 && d.getMonth()!==m-1) break;
+    const cls = ["md", d.getMonth()!==m-1?"out":"", s===t?"today":"", s===state.sel?"sel":"", isRest(s)?"rest":""].join(" ");
+    const hs = holsFor(s).map(x=>x.n).join(", ");
+    h += `<button class="${cls}" data-act="pickm" data-s="${s}" aria-label="${d.getDate()} ${MON[d.getMonth()]}${hs?", "+esc(hs):""}"><span class="n num">${d.getDate()}</span>${dotsFor(s)}</button>`;
+  }
+  h += `</div><div class="legend">
+    ${prefs.tw?'<span><i class="dot tw"></i>Taiwan holiday</span>':""}
+    ${prefs.my?'<span><i class="dot my"></i>Malaysia (KL) holiday</span>':""}
+    <span><i class="dot plan"></i>Has plans</span>
+    <span><b class="red">Red date</b> day off in Taiwan</span></div>`;
+  return h;
+}
+
+function upcomingHTML(){
+  const t = today();
+  const list = HOLIDAYS.filter(h => h.d >= t && (h.c==="MY"?prefs.my:prefs.tw)).sort((a,b)=>a.d.localeCompare(b.d)||a.c.localeCompare(b.c)).slice(0,7);
+  if (!list.length) return `<li style="padding:8px 4px;color:var(--graphite)">No holidays to show.</li>`;
+  return list.map(x => { const d = parse(x.d); return `<li><button data-act="pickm" data-s="${x.d}">
+    <span class="dt num">${d.getDate()} ${MON[d.getMonth()].slice(0,3)}<small>${DOW[d.getDay()]}</small></span>
+    <span class="nm"><b class="${x.c.toLowerCase()}">${x.c}</b><span>${esc(x.n)}${x.est?" <em>est.</em>":""}</span></span></button></li>`; }).join("");
+}
+
+function renderMonths(){
+  const mh = monthHTML(), uh = upcomingHTML();
+  document.getElementById("sideMonth").innerHTML = mh;
+  document.getElementById("mainMonth").innerHTML = mh;
+  document.getElementById("sideUp").innerHTML = uh;
+  document.getElementById("mainUp").innerHTML = uh;
+}
+
+function hourOpts(sel){ let o = ""; for (let h=9; h<=18; h++) o += `<option value="${h}" ${h===sel?"selected":""}>${pad(h)}:00</option>`; return o; }
+
+function renderRem(){
+  const t = today(), nw = isWeekday(t) && new Date().getHours()*60+new Date().getMinutes() < 8*60 ? t : nextWork(t);
+  const nwCount = Store.get(nw).items.length;
+  const nwLabel = nw===t ? "today" : nw===addDays(t,1) ? "tomorrow" : DOW_LONG[parse(nw).getDay()];
+  const S = Settings.v, synced = !!Settings.db;
+  const hourly = (S.word || S.rest) ? `Every hour, ${pad(S.start)}:00–${pad(S.end)}:00` : "Off";
+  document.getElementById("vRem").innerHTML = `
+    <h2>Reminders</h2>
+    <p>Claude sends these to your phone on weekdays (not on Taiwan public holidays), using what's saved here.</p>
+    <div class="list">
+      <div class="item"><span class="clock num">08:00</span><div><h3>Morning plan</h3><p>Today's tasks in time order, plus any Taiwan or Malaysia holiday.</p></div><span></span></div>
+      <div class="item"><span class="clock num" style="font-size:20px">Hourly</span><div><h3>English word + break</h3><p>${esc(hourly)}. A new word for you, and a short rest tip.</p></div><span></span></div>
+      <div class="item"><span class="clock num">16:30</span><div><h3>Daily recap</h3><p>What you finished today, what's left, today's words, and a nudge to plan the next working day.</p></div><span></span></div>
+    </div>
+    <h3 class="listh">Hourly reminder</h3>
+    <div class="list">
+      <label class="item"><span class="flag" style="background:var(--ink)">Aa</span><div><h3>English word every hour</h3><p>Saved to the Words tab so you can review.</p></div><input type="checkbox" class="switch" data-act="rset" data-k="word" ${S.word?"checked":""} ${synced?"":"disabled"}></label>
+      <label class="item"><span class="flag tw">☕</span><div><h3>Rest reminders</h3><p>Rest your eyes, stretch, drink water.</p></div><input type="checkbox" class="switch" data-act="rset" data-k="rest" ${S.rest?"checked":""} ${synced?"":"disabled"}></label>
+      <div class="item hrs"><span class="flag" style="background:var(--graphite)">⏱</span><div><h3>Hours</h3><p>When hourly reminders are sent.</p></div>
+        <span class="hours"><select class="sel" data-act="rhour" data-k="start" aria-label="From" ${synced?"":"disabled"}>${hourOpts(S.start)}</select>to<select class="sel" data-act="rhour" data-k="end" aria-label="Until" ${synced?"":"disabled"}>${hourOpts(S.end)}</select></span></div>
+    </div>
+    ${synced ? "" : `<p class="fine">Connect your Planner link (below) to change reminder settings.</p>`}
+    <h3 class="listh">Claude in the planner</h3>
+    <div class="list">
+      <label class="item"><span class="flag" style="background:var(--ink)">${SPARK}</span><div><h3>Tidy my wording</h3><p>Type tasks any way you like. Claude corrects the grammar at the next hourly reminder and moves times like “0830” into the time column. Tasks waiting to be tidied show a small sparkle.</p></div><input type="checkbox" class="switch" data-act="aiset" data-k="tidy" ${Settings.ai.tidy?"checked":""} ${synced?"":"disabled"}></label>
+    </div>
+    <h3 class="listh">Next morning reminder</h3>
+    <div class="list"><div class="item"><span class="clock num">${nwCount}</span><div><h3>Planned for ${nwLabel}</h3><p>${nwCount ? "This is what your next 08:00 reminder will send." : "Your next 08:00 reminder will be empty until you add something."}</p></div>
+      <button class="pill" data-act="pick" data-s="${nw}">Open</button></div></div>
+    <h3 class="listh">Holidays shown</h3>
+    <div class="list">
+      <label class="item"><span class="flag tw">TW</span><div><h3>Taiwan</h3><p>National holidays and 補假 from the official office calendar</p></div><input type="checkbox" class="switch" data-act="pref" data-k="tw" ${prefs.tw?"checked":""}></label>
+      <label class="item"><span class="flag my">MY</span><div><h3>Malaysia</h3><p>Federal holidays plus Kuala Lumpur state holidays</p></div><input type="checkbox" class="switch" data-act="pref" data-k="my" ${prefs.my?"checked":""}></label>
+    </div>
+    <p class="fine">Malaysian Islamic holidays follow moon sighting and may shift by a day. Days marked est. are replacement holidays worked out from the usual Sunday rule and haven't been confirmed. Holiday data covers November 2026 to December 2027.</p>
+    <h3 class="listh">Your data</h3>
+    <div class="list">
+      <div class="item data-item"><span class="sync" id="sync2"></span><button class="pill" data-act="syncnow">Sync now</button><button class="pill" data-act="import">Import plans</button><button class="pill" data-act="copy">Copy all plans</button><button class="pill" data-act="reconnect">${API.url ? "Change Planner link" : "Connect"}</button></div>
+      <div class="item import-box" id="importBox" hidden>
+        <textarea id="importText" placeholder="Paste plans copied from the other version of the planner" aria-label="Plans to import"></textarea>
+        <div class="import-actions"><button class="pill" data-act="import-cancel">Cancel</button><button class="addbtn" data-act="import-go">Add these plans</button></div>
+      </div>
+    </div>`;
+  const s2 = document.getElementById("sync2");
+  const m = Store.mode;
+  s2.className = "sync " + (m==="synced"?"on":m==="error"?"err":"");
+  s2.innerHTML = "<i></i>" + (!API.url ? "On this phone only. Connect your Planner link to sync." : m==="synced" ? "Synced with your Google Sheet" : m==="error" ? "Couldn't sync yet. Changes are kept on this phone." : "Syncing…");
+}
+
+function renderWords(){
+  const el = document.getElementById("vWords"), L = Words.list, w = L[0];
+  const [rt, rd] = restTip();
+  let h = `<h2>Words</h2><p>A new English word every hour on weekdays. Tap “Got it” when you know it.</p>`;
+  if (w) {
+    const when = w.date === today() ? `Today ${esc(w.hour||"")}` : `${esc(w.date)} ${esc(w.hour||"")}`;
+    h += `<article class="wcard"><div class="lbl"><span>Latest word</span><span class="num">${when}</span></div>
+      <div class="word">${esc(w.word)}</div><div class="pos">${esc(w.pos)}</div>
+      ${w.zh ? `<div class="zh">${esc(w.zh)}</div>` : ""}
+      <p class="mean">${esc(w.meaning)}</p>
+      ${w.example ? `<p class="ex">${esc(w.example)}</p>` : ""}
+      <div class="acts"><button class="got" data-act="learn" data-id="${esc(w.id)}" aria-pressed="${w.learned?"true":"false"}">${w.learned?"Learned":"Got it"}</button>
+      ${AI.ok ? `<button class="addbtn" data-act="newword" ${AI.busy?"disabled":""}>${AI.busy?"Thinking…":"New word now"}</button>` : ""}</div></article>`;
+  } else {
+    h += `<article class="wcard"><p class="wempty">${Words.loaded || !Words.db ? (Words.db ? "No words yet. Your first one arrives with the next hourly reminder." : "Connect your Planner link to see your words.") : "Loading words…"}</p>
+      ${AI.ok ? `<div class="acts"><button class="addbtn" data-act="newword" ${AI.busy?"disabled":""}>${AI.busy?"Thinking…":"Get a word now"}</button></div>` : ""}</article>`;
+  }
+  h += `<div class="restcard"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg></span>
+    <div><h3>Break idea: ${esc(rt)}</h3><p>${esc(rd)}</p></div></div>`;
+  const rest = L.slice(1);
+  if (rest.length) {
+    const groups = {};
+    rest.forEach(x => (groups[x.date || "Earlier"] ||= []).push(x));
+    const learned = L.filter(x => x.learned).length;
+    h += `<h3 class="listh">Review · ${learned} of ${L.length} learned</h3>`;
+    Object.keys(groups).forEach(d => {
+      h += `<div class="wday">${d === today() ? "Today" : d === addDays(today(),-1) ? "Yesterday" : esc(d)}</div><ul class="wlist">`;
+      groups[d].forEach(x => {
+        h += `<li class="${x.learned?"learned":""}"><div><b>${esc(x.word)}</b> <span style="color:var(--graphite);font-size:13px">${esc(x.zh||"")}</span><span class="m">${esc(x.meaning)}</span></div>
+          <button class="got" data-act="learn" data-id="${esc(x.id)}" aria-pressed="${x.learned?"true":"false"}">${x.learned?"Learned":"Got it"}</button></li>`;
+      });
+      h += `</ul>`;
+    });
+  }
+  el.innerHTML = h;
+}
+
+function render(){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  const wide = matchMedia("(min-width:960px)").matches;
+  if (wide && state.view==="month") state.view = "day";
+  document.getElementById({day:"vDay",month:"vMonth",words:"vWords",rem:"vRem"}[state.view]).classList.add("on");
+  document.querySelectorAll(".tab").forEach(b => { if (b.dataset.v===state.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  renderWeek(); renderDay(); renderMonths();
+  if (state.view==="rem") renderRem();
+  if (state.view==="words") renderWords();
+}
+
+let pendingRender = false;
+function scheduleRender(){
+  const a = document.activeElement;
+  if (a && a.id === "addText") {           // keep typing in the add box while the list updates
+    const v = a.value, tm = document.getElementById("addTime").value;
+    render();
+    const n = document.getElementById("addText"), ti = document.getElementById("addTime");
+    n.value = v; ti.value = tm; ti.classList.toggle("blank", !tm);
+    document.getElementById("addBtn").disabled = !v.trim();
+    n.focus();
+    return;
+  }
+  if (a && (a.classList.contains("txt") || a.id==="notes" || a.id==="addTime" || a.id==="sheetLink")) { pendingRender = true; return; }
+  render();
+}
+document.addEventListener("focusout", () => setTimeout(() => {
+  const a = document.activeElement;
+  if (pendingRender && !(a && (a.classList.contains("txt") || a.id==="notes" || a.id==="addTime" || a.id==="sheetLink"))) { pendingRender = false; render(); }
+}, 0));
+
+/* ---------- actions ---------- */
+function toast(msg, actLabel, actFn){
+  const t = document.getElementById("toast"), b = document.getElementById("toastAct");
+  document.getElementById("toastMsg").textContent = msg;
+  b.hidden = !actLabel; b.textContent = actLabel || "";
+  b.onclick = actFn ? () => { t.classList.remove("show"); actFn(); } : null;
+  t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), actLabel ? 6000 : 2200);
+}
+function pick(s){ state.sel = s; state.month = s.slice(0,7); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const act = b.dataset.act;
+  if (act==="view"){ state.view = b.dataset.v; history.replaceState(null,"", b.dataset.v==="day" ? location.pathname : "#" + ({rem:"reminders",month:"month",words:"words"})[b.dataset.v]); render(); window.scrollTo({top:0}); }
+  else if (act==="pick"){ pick(b.dataset.s); state.view = "day"; history.replaceState(null,"",location.pathname); render(); window.scrollTo({top:0}); }
+  else if (act==="pickm"){ pick(b.dataset.s); if (!matchMedia("(min-width:960px)").matches) state.view = "day"; else if (state.view!=="day") state.view="day"; render(); }
+  else if (act==="week"){ pick(addDays(state.sel, +b.dataset.d)); render(); }
+  else if (act==="month"){ const [y,m] = state.month.split("-").map(Number); const d = new Date(y, m-1 + (+b.dataset.d), 1); state.month = ymd(d).slice(0,7); renderMonths(); }
+  else if (act==="today"){ pick(today()); render(); }
+  else if (act==="del"){
+    const id = b.closest(".row").dataset.id, p = Store.ensure(state.sel);
+    p.items = p.items.filter(i=>i.id!==id); Store.touch(state.sel); render();
+  }
+  else if (act==="carry"){
+    const p = Store.ensure(state.sel), next = nextWork(state.sel), q = Store.ensure(next);
+    const moving = p.items.filter(i=>!i.done);
+    q.items.push(...moving.map(i=>({...i, id: uid(), done:false})));
+    p.items = p.items.filter(i=>i.done);
+    Store.touch(state.sel); Store.touch(next);
+    toast(`Moved ${moving.length} to ${DOW_LONG[parse(next).getDay()]}`);
+    render();
+  }
+  else if (act==="import"){ const box = document.getElementById("importBox"); box.hidden = false; document.getElementById("importText").focus(); }
+  else if (act==="import-cancel"){ document.getElementById("importBox").hidden = true; }
+  else if (act==="import-go"){
+    let incoming;
+    try { incoming = JSON.parse(document.getElementById("importText").value); } catch { toast("That isn't a plans export. Copy it again with Copy all plans."); return; }
+    if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) { toast("That isn't a plans export. Copy it again with Copy all plans."); return; }
+    let days = 0;
+    for (const [date, v] of Object.entries(incoming)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !v || !Array.isArray(v.items)) continue;
+      const p = Store.ensure(date), ids = new Set(p.items.map(i=>i.id));
+      const add = v.items.filter(i => i && typeof i.text==="string" && !ids.has(i.id)).map(i => ({id: String(i.id||uid()), t: typeof i.t==="string" ? i.t : "", text: i.text, done: !!i.done}));
+      p.items.push(...add);
+      if (!p.note && typeof v.note==="string") p.note = v.note;
+      if (add.length || v.note) { Store.touch(date); days++; }
+    }
+    toast(days ? `Added plans for ${days} ${days===1?"day":"days"}` : "Nothing new to add");
+    render();
+  }
+  else if (act==="perm"){ Native.requestPerm(); }
+  else if (act==="sheet-save"){ Settings.saveSheet(document.getElementById("sheetLink").value.trim()); }
+  else if (act==="sheet-sync"){ Widget.push(true); }
+  else if (act==="syncnow"){ Store.sync().then(()=>toast(Store.mode==="synced" ? "Synced" : "Couldn't sync")); }
+  else if (act==="reconnect"){ showSetup(true); }
+  else if (act==="connect"){ connect(); }
+  else if (act==="cancelsetup"){ hideSetup(); }
+  else if (act==="localonly"){ try { localStorage.setItem("planner.localonly","1"); } catch {} hideSetup(); }
+  else if (act==="fixall"){ const p = Store.get(state.sel); AI.fixItems(state.sel, p.items.filter(i=>!i.done).map(i=>i.id)); }
+  else if (act==="tidy"){ AI.tidyNote(state.sel); }
+  else if (act==="newword"){ AI.newWord().then(()=>{ if (state.view==="words") renderWords(); }); renderWords(); }
+  else if (act==="learn"){ const w = Words.list.find(x=>x.id===b.dataset.id); if (w) Words.setLearned(w.id, !w.learned); }
+  else if (act==="copy"){
+    const out = JSON.stringify(Store.data, null, 2);
+    (navigator.clipboard ? navigator.clipboard.writeText(out) : Promise.reject()).then(()=>toast("Copied all plans"), ()=>toast("Couldn't copy here"));
+  }
+});
+
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.act==="toggle"){
+    const id = el.closest(".row").dataset.id, p = Store.ensure(state.sel);
+    const it = p.items.find(i=>i.id===id); if (it) it.done = el.checked;
+    Store.touch(state.sel); render();
+  } else if (el.dataset.act==="pref"){
+    prefs[el.dataset.k] = el.checked; savePrefs(); render(); Native.schedule();
+  } else if (el.dataset.act==="aiset"){
+    Settings.saveAi({[el.dataset.k]: el.checked});
+  } else if (el.dataset.act==="rset"){
+    Settings.save({[el.dataset.k]: el.checked});
+  } else if (el.dataset.act==="rhour"){
+    Settings.save({[el.dataset.k]: Number(el.value)});
+  }
+});
+
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.act==="edit"){
+    const id = el.closest(".row").dataset.id, p = Store.ensure(state.sel);
+    const it = p.items.find(i=>i.id===id); if (it) { it.text = el.value.replace(/\n/g," "); if (Settings.ai.tidy) it.raw = true; Store.touch(state.sel); }
+    fit(el);
+  } else if (el.id==="notes"){
+    Store.ensure(state.sel).note = el.value; Store.touch(state.sel);
+  } else if (el.id==="addTime"){
+    el.classList.toggle("blank", !el.value);
+  } else if (el.id==="addText"){
+    document.getElementById("addBtn").disabled = !el.value.trim();
+  }
+});
+
+document.addEventListener("focusout", e => {
+  const el = e.target;
+  if (el.dataset && el.dataset.act==="edit" && !el.value.trim()){
+    const id = el.closest(".row").dataset.id, p = Store.ensure(state.sel);
+    p.items = p.items.filter(i=>i.id!==id); Store.touch(state.sel); pendingRender = true;
+  }
+});
+
+document.addEventListener("submit", e => {
+  if (e.target.id!=="addForm") return;
+  e.preventDefault();
+  const text = document.getElementById("addText").value.trim();
+  if (!text) return;
+  const t = document.getElementById("addTime").value || "";
+  const nid = uid(), day = state.sel;
+  Store.ensure(day).items.push(Settings.ai.tidy ? {id: nid, t, text, done:false, raw:true} : {id: nid, t, text, done:false});
+  Store.touch(day);
+  render();
+  document.getElementById("addText").focus();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key==="Enter" && e.target.dataset && e.target.dataset.act==="edit") { e.preventDefault(); e.target.blur(); }
+  if (e.key==="Enter" && e.target.id==="apiField") { e.preventDefault(); connect(); }
+});
+
+/* swipe between weeks on the strip */
+(() => {
+  let x0 = null;
+  const w = document.getElementById("week");
+  w.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive:true});
+  w.addEventListener("touchend", e => {
+    if (x0===null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) { pick(addDays(state.sel, dx<0 ? 7 : -7)); render(); }
+  });
+})();
+
+/* refresh at midnight and at 16:30 so "today" and the nudge stay right */
+let lastMinuteKey = "";
+setInterval(() => {
+  const n = new Date(), k = `${today()} ${n.getHours()>=16 && n.getMinutes()>=30 || n.getHours()>16}`;
+  if (lastMinuteKey && k!==lastMinuteKey) scheduleRender();
+  lastMinuteKey = k;
+}, 30000);
+matchMedia("(min-width:960px)").addEventListener("change", render);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { scheduleRender(); Store.sync(); } });
+
+/* ---------- first run: connect the Planner link ---------- */
+function showSetup(again){
+  const el = document.getElementById("setup");
+  el.hidden = false;
+  document.getElementById("apiField").value = API.url || "";
+  const sk = document.getElementById("setupSkip");
+  sk.textContent = again && API.url ? "Cancel" : "Use on this phone only for now";
+  sk.dataset.act = again && API.url ? "cancelsetup" : "localonly";
+  document.getElementById("apiField").focus();
+}
+function hideSetup(){ document.getElementById("setup").hidden = true; }
+async function connect(){
+  const f = document.getElementById("apiField"), msg = document.getElementById("setupMsg"), btn = document.getElementById("setupGo");
+  const u = f.value.trim().replace(/\?.*$/, "");
+  if (!validApi(u)) { msg.textContent = "That isn't a Planner link. It starts with https://script.google.com/macros/s/ and ends with /exec."; return; }
+  btn.disabled = true; msg.textContent = "Checking…";
+  try { await API.get("ping", u); }
+  catch { msg.textContent = "Couldn't reach it. Check the link, and that the web app is deployed with access set to “Anyone”."; btn.disabled = false; return; }
+  API.set(u); Words.db = true; Settings.db = true;
+  btn.disabled = false; msg.textContent = ""; hideSetup();
+  toast("Connected"); Store.sync();
+}
+
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+Store.start();
+let localOnly = false; try { localOnly = localStorage.getItem("planner.localonly") === "1"; } catch {}
+if (!API.url && !localOnly) showSetup(false);
+</script>
+</body>
+</html>
